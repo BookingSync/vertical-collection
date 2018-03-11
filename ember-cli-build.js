@@ -9,10 +9,6 @@ module.exports = function(defaults) {
 
   let app = new EmberAddon(defaults);
 
-  app.isDevelopingAddon = () => {
-    return true;
-  };
-
   let bootstrapPath = `${app.bowerDirectory  }/bootstrap/dist/`;
   app.import(`${bootstrapPath}css/bootstrap.css`);
   app.import(`${bootstrapPath}fonts/glyphicons-halflings-regular.eot`, { destDir: '/fonts' });
