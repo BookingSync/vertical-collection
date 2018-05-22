@@ -222,3 +222,33 @@ img.auto-size {
 vertical-item {
   display: block;
 }
+
+.scrollable-horizontal {
+  display: flex;
+  align-items: center;
+  flex: 0 0 auto;
+}
+
+.scrollable-horizontal occluded-content {
+  min-height: auto;
+  min-width: 0.01px;
+  flex: 0 0 auto;
+}
+
+.scrollable-horizontal number-slide {
+  flex: 0 0 auto;
+  margin: 0 10px;
+}
+
+.scrollable-horizontal table > occluded-content,
+.scrollable-horizontal tbody > occluded-content,
+.scrollable-horizontal thead > occluded-content {
+  height: 100%;
+  width: auto;
+}
+
+.scrollable-horizontal ul > occluded-content,
+.scrollable-horizontal ol > occluded-content {
+  height: 100%;
+  width: 0;
+}
