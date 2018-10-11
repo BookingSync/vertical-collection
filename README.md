@@ -64,10 +64,7 @@ ember install @html-next/vertical-collection
 
 ## Support, Questions, Collaboration
 
-Join the [smoke-and-mirrors](https://embercommunity.slack.com/messages/smoke-and-mirrors/) channel on Slack.
-
-[![Slack Status](https://ember-community-slackin.herokuapp.com/badge.svg)](https://ember-community-slackin.herokuapp.com/)
-
+Join the [Ember community on Discord](https://discord.gg/zT3asNS)
 
 ## Features
 
@@ -130,3 +127,10 @@ Angular Style commit messages have the full form:
 
  - chore(deps): bump deps in package.json and bower.json
  - docs(component): document the `fast-action` component
+
+
+### Testing
+
+Make sure you register the test waiter from [ember-raf-scheduler](https://github.com/html-next/ember-raf-scheduler). So `ember-test-helpers`'s `wait` is aware of the scheduled updates.
+
+An example can be found [here](https://github.com/html-next/vertical-collection/blob/master/tests/test-helper.js#L2)
