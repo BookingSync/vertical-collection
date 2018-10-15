@@ -17,7 +17,7 @@ import {
   objectAt
 } from '../../-private';
 
-const VerticalCollection = Component.extend({
+const HorizontalCollection = Component.extend({
   layout,
 
   tagName: '',
@@ -35,18 +35,18 @@ const VerticalCollection = Component.extend({
   // –––––––––––––– Required Settings
 
   /**
-   * Estimated height of an item to be rendered. Use best guess as this will be used to determine how many items
-   * are displayed virtually, before and after the vertical-collection viewport.
+   * Estimated width of an item to be rendered. Use best guess as this will be used to determine how many items
+   * are displayed virtually, before and after the horizontal-collection viewport.
    *
-   * @property estimateHeight
+   * @property estimateWidth
    * @type Number
    * @required
    */
-  estimateHeight: null,
+  estimateWidth: null,
 
   /**
    * List of objects to svelte-render.
-   * Can be called like `{{#vertical-collection <items-array>}}`, since it's the first positional parameter of this component.
+   * Can be called like `{{#horizontal-collection <items-array>}}`, since it's the first positional parameter of this component.
    *
    * @property items
    * @type Array
@@ -56,14 +56,14 @@ const VerticalCollection = Component.extend({
 
   // –––––––––––––– Optional Settings
   /**
-   * Indicates if the occluded items' heights will change or not.
-   * If true, the vertical-collection will assume that items' heights are always equal to estimateHeight;
+   * Indicates if the occluded items' widths will change or not.
+   * If true, the horizontal-collection will assume that items' widths are always equal to estimateWidth;
    * this is more performant, but less flexible.
    *
-   * @property staticHeight
+   * @property staticWidth
    * @type Boolean
    */
-  staticHeight: false,
+  staticWidth: false,
 
   /**
    * Indicates whether or not list items in the Radar should be reused on update of virtual components (e.g. scroll).
@@ -82,7 +82,7 @@ const VerticalCollection = Component.extend({
 
   /*
    * A selector string that will select the element from
-   * which to calculate the viewable height and needed offsets.
+   * which to calculate the viewable width and needed offsets.
    *
    * This element will also have the `scroll` event handler added to it.
    *
@@ -130,7 +130,7 @@ const VerticalCollection = Component.extend({
 
   /**
    * If set to true, the collection will render all of the items passed into the component.
-   * This counteracts the performance benefits of using vertical collection, but has several potential applications,
+   * This counteracts the performance benefits of using horizontal collection, but has several potential applications,
    * including but not limited to:
    *
    * - It allows for improved accessibility since all elements are rendered and can be picked up by a screen reader.
@@ -147,17 +147,49 @@ const VerticalCollection = Component.extend({
   isEmpty: empty('items'),
   shouldYieldToInverse: readOnly('isEmpty'),
 
-  virtualComponents: computed('items.[]', 'renderAll', 'estimateHeight', 'bufferSize', function() {
-    const { _radar } = this;
+  virtualComponents: computed('items.[]', 'renderAll', 'estimateWidth', 'bufferSize', function() {
+    const {
+      _radar,
+      _prevItemsLength,
+      _prevFirstKey,
+      _prevLastKey
+    } = this;
 
-    const items = this.get('items');
-
-    _radar.items = items === null || items === undefined ? [] : items;
-    _radar.estimateHeight = this.get('estimateHeight');
+    _radar.estimateWidth = this.get('estimateWidth');
     _radar.renderAll = this.get('renderAll');
     _radar.bufferSize = this.get('bufferSize');
 
-    _radar.scheduleUpdate(true);
+    const items = this.get('items');
+    const itemsLength = get(items, 'length');
+
+    if (items === null || items === undefined || itemsLength === 0) {
+      _radar.items = [];
+      _radar.reset();
+      _radar.scheduleUpdate();
+
+      this._prevItemsLength = this._prevFirstKey = this._prevLastKey = 0;
+
+      return _radar.virtualComponents;
+    }
+
+    _radar.items = items;
+
+    const key = this.get('key');
+    const lenDiff = itemsLength - _prevItemsLength;
+
+    this._prevItemsLength = itemsLength;
+    this._prevFirstKey = keyForItem(objectAt(items, 0), key, 0);
+    this._prevLastKey = keyForItem(objectAt(items, itemsLength - 1), key, itemsLength - 1);
+
+    if (isPrepend(lenDiff, items, key, _prevFirstKey, _prevLastKey) === true) {
+      _radar.prepend(lenDiff);
+    } else if (isAppend(lenDiff, items, key, _prevFirstKey, _prevLastKey) === true) {
+      _radar.append(lenDiff);
+    } else {
+      _radar.reset();
+    }
+
+    _radar.scheduleUpdate();
 
     return _radar.virtualComponents;
   }),
@@ -206,13 +238,13 @@ const VerticalCollection = Component.extend({
     this._super();
 
     this.token = new Token();
-    const RadarClass = this.staticHeight ? StaticRadar : DynamicRadar;
+    const RadarClass = this.staticWidth ? StaticRadar : DynamicRadar;
 
     const items = this.get('items') || [];
 
     const bufferSize = this.get('bufferSize');
     const containerSelector = this.get('containerSelector');
-    const estimateHeight = this.get('estimateHeight');
+    const estimateWidth = this.get('estimateWidth');
     const initialRenderCount = this.get('initialRenderCount');
     const renderAll = this.get('renderAll');
     const renderFromLast = this.get('renderFromLast');
@@ -228,10 +260,9 @@ const VerticalCollection = Component.extend({
       {
         bufferSize,
         containerSelector,
-        estimateHeight,
+        estimateWidth,
         initialRenderCount,
         items,
-        key,
         renderAll,
         renderFromLast,
         shouldRecycle,
@@ -270,12 +301,12 @@ const VerticalCollection = Component.extend({
   }
 });
 
-VerticalCollection.reopenClass({
+HorizontalCollection.reopenClass({
   positionalParams: ['items']
 });
 
 if (!SUPPORTS_INVERSE_BLOCK) {
-  VerticalCollection.reopen({
+  HorizontalCollection.reopen({
     shouldYieldToInverse: false
   });
 }
@@ -300,4 +331,30 @@ function calculateStartingIndex(items, idForFirstItem, key, renderFromLast) {
   return startingIndex;
 }
 
-export default VerticalCollection;
+function isPrepend(lenDiff, newItems, key, oldFirstKey, oldLastKey) {
+  const newItemsLength = get(newItems, 'length');
+
+  if (lenDiff <= 0 || lenDiff >= newItemsLength || newItemsLength === 0) {
+    return false;
+  }
+
+  const newFirstKey = keyForItem(objectAt(newItems, lenDiff), key, lenDiff);
+  const newLastKey = keyForItem(objectAt(newItems, newItemsLength - 1), key, newItemsLength - 1);
+
+  return oldFirstKey === newFirstKey && oldLastKey === newLastKey;
+}
+
+function isAppend(lenDiff, newItems, key, oldFirstKey, oldLastKey) {
+  const newItemsLength = get(newItems, 'length');
+
+  if (lenDiff <= 0 || lenDiff >= newItemsLength || newItemsLength === 0) {
+    return false;
+  }
+
+  const newFirstKey = keyForItem(objectAt(newItems, 0), key, 0);
+  const newLastKey = keyForItem(objectAt(newItems, newItemsLength - lenDiff - 1), key, newItemsLength - lenDiff - 1);
+
+  return oldFirstKey === newFirstKey && oldLastKey === newLastKey;
+}
+
+export default HorizontalCollection;

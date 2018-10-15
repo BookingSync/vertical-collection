@@ -18,9 +18,14 @@ export default class StaticRadar extends Radar {
     const {
       bufferSize,
       totalItems,
-      visibleMiddle,
+      estimateHeight,
+      estimateWidth,
+      visibleMiddleVertical,
+      visibleMiddleHorizontal,
       _calculatedEstimateHeight,
-      _calculatedScrollContainerHeight
+      _calculatedEstimateWidth,
+      _calculatedScrollContainerHeight,
+      _calculatedScrollContainerWidth
     } = this;
 
     if (totalItems === 0) {
@@ -32,9 +37,16 @@ export default class StaticRadar extends Radar {
 
     const maxIndex = totalItems - 1;
 
-    const middleItemIndex = Math.floor(visibleMiddle / _calculatedEstimateHeight);
+    let middleItemIndex,
+      shouldRenderCount;
 
-    const shouldRenderCount = Math.min(Math.ceil(_calculatedScrollContainerHeight / _calculatedEstimateHeight), totalItems);
+    if (estimateHeight) {
+      middleItemIndex = Math.floor(visibleMiddleVertical / _calculatedEstimateHeight);
+      shouldRenderCount = Math.min(Math.ceil(_calculatedScrollContainerHeight / _calculatedEstimateHeight), totalItems);
+    } else if (estimateWidth) {
+      middleItemIndex = Math.floor(visibleMiddleHorizontal / _calculatedEstimateWidth);
+      shouldRenderCount = Math.min(Math.ceil(_calculatedScrollContainerWidth / _calculatedEstimateWidth), totalItems);
+    }
 
     let firstItemIndex = middleItemIndex - Math.floor(shouldRenderCount / 2);
     let lastItemIndex = middleItemIndex + Math.ceil(shouldRenderCount / 2) - 1;
@@ -57,19 +69,31 @@ export default class StaticRadar extends Radar {
   }
 
   _didEarthquake(scrollDiff) {
-    return scrollDiff > (this._calculatedEstimateHeight / 2);
+    if (this.estimateHeight) {
+      return scrollDiff > (this._calculatedEstimateHeight / 2);
+    }
+    return scrollDiff > (this._calculatedEstimateWidth / 2);
   }
 
   get total() {
-    return this.totalItems * this._calculatedEstimateHeight;
+    if (this.estimateHeight) {
+      return this.totalItems * this._calculatedEstimateHeight;
+    }
+    return this.totalItems * this._calculatedEstimateWidth;
   }
 
   get totalBefore() {
-    return this.firstItemIndex * this._calculatedEstimateHeight;
+    if (this.estimateHeight) {
+      return this.firstItemIndex * this._calculatedEstimateHeight;
+    }
+    return this.firstItemIndex * this._calculatedEstimateWidth;
   }
 
   get totalAfter() {
-    return this.total - ((this.lastItemIndex + 1) * this._calculatedEstimateHeight);
+    if (this.estimateHeight) {
+      return this.total - ((this.lastItemIndex + 1) * this._calculatedEstimateHeight);
+    }
+    return this.total - ((this.lastItemIndex + 1) * this._calculatedEstimateWidth);
   }
 
   get firstItemIndex() {
@@ -81,17 +105,26 @@ export default class StaticRadar extends Radar {
   }
 
   get firstVisibleIndex() {
-    return Math.ceil(this.visibleTop / this._calculatedEstimateHeight);
+    if (this.estimateHeight) {
+      return Math.ceil(this.visibleTop / this._calculatedEstimateHeight);
+    }
+    return Math.ceil(this.visibleLeft / this._calculatedEstimateWidth);
   }
 
   get lastVisibleIndex() {
-    return Math.min(Math.ceil(this.visibleBottom / this._calculatedEstimateHeight), this.totalItems) - 1;
+    if (this.estimateHeight) {
+      return Math.min(Math.ceil(this.visibleTop / this._calculatedEstimateHeight), this.totalItems) - 1;
+    }
+    return Math.min(Math.ceil(this.visibleRight / this._calculatedEstimateWidth), this.totalItems) - 1;
   }
 
   /*
    * Public API to query for the offset of an item
    */
   getOffsetForIndex(index) {
-    return index * this._calculatedEstimateHeight + 1;
+    if (this.estimateHeight) {
+      return index * this._calculatedEstimateHeight + 1;
+    }
+    return index * this._calculatedEstimateWidth + 1;
   }
 }
